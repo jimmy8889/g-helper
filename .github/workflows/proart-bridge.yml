@@ -1,0 +1,35 @@
+name: ProArt bridge
+on:
+  push:
+    branches: [proart-bridge]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet run --project bridge-tests/Bridge.Tests.csproj
+      - run: dotnet build app/GHelper.csproj -c Release -p:ProArtBridge=true -p:EnableWindowsTargeting=true
+      - name: Publish Windows bridge
+        if: runner.os == 'Windows'
+        run: dotnet publish app/GHelper.csproj -c Release -r win-x64 --self-contained true -p:ProArtBridge=true -p:PublishSingleFile=true -o dist/bridge
+      - name: Check packaged protocol without hardware access
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $protocol = & ./dist/bridge/ProArtGHelper.exe --protocol-version | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $protocol.protocol -ne 1) { throw 'Bridge protocol check failed' }
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: proart-ghelper-bridge
+          path: dist/bridge/

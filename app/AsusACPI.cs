@@ -1,4 +1,4 @@
-﻿using GHelper;
+using GHelper;
 using GHelper.USB;
 using System.Collections.Concurrent;
 using System.Management;
@@ -287,7 +287,7 @@ public class AsusACPI
         return _connected;
     }
 
-    public AsusACPI()
+    public AsusACPI(bool applyModelOverrides = true)
     {
         try
         {
@@ -308,6 +308,8 @@ public class AsusACPI
         {
             Logger.WriteLine($"Can't connect to ACPI: {ex.Message}");
         }
+
+        if (!applyModelOverrides) return;
 
         if (AppConfig.IsAdvantageEdition())
         {
